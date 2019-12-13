@@ -6,11 +6,11 @@
 
 import os
 import numpy as np
-from nilearn import image
 import matplotlib.pyplot as plt
 from nilearn import image, plotting
-from nilearn.image import resample_img
 import nibabel as nib
+
+from src.Otsu import otsu_threshold
 
 
 def show_slices(slices):
@@ -18,6 +18,19 @@ def show_slices(slices):
     fig, axes = plt.subplots(1, len(slices))
     for i, slice in enumerate(slices):
         axes[i].imshow(slice.T, cmap="gray", origin="lower")
+
+
+def show_nifti(src_image):
+    dims = src_image.shape
+    for _img in image.iter_img(src_image):
+        # _img is now an in-memory 3D img
+        slice_0 = _img.dataobj[dims[0] // 2, :, :]
+        slice_1 = _img.dataobj[:, dims[1] // 2, :]
+        slice_2 = _img.dataobj[:, :, dims[2] // 2]
+        show_slices([slice_0, slice_1, slice_2])
+        plt.suptitle("Center slices for PET image")
+
+    plotting.show()
 
 
 """
@@ -106,6 +119,7 @@ def resample_img(source_image, target_shape, voxel_dims=[2., 2., 2.]):
     # Readjust center coords
     target_center_coords = source_image.affine[0:3, 3] + (source_image.affine[0:3, 3] - target_center_coords) / 2.
 
+    # target_center_coords[1] += 5
     target_affine = rescale_affine(target_affine, voxel_dims, target_center_coords)
 
     resampled_img = image.resample_img(img, target_affine, target_shape=target_shape)
@@ -130,14 +144,12 @@ voxels = [2., 2., 2.]
 
 resampled_img2 = resample_img(img, dim, voxels)
 
-for img2 in image.iter_img(resampled_img2):
-    # img is now an in-memory 3D img
-    slice_0 = img2.dataobj[dim[0] // 2, :, :]
-    slice_1 = img2.dataobj[:, dim[1] // 2, :]
-    slice_2 = img2.dataobj[:, :, dim[2] // 2]
-    show_slices([slice_0, slice_1, slice_2])
-    plt.suptitle("Center slices for PET image")
+resampled_img3 = resample_img(img, dim, voxels)
 
-plotting.show()
+otsu_threshold.threshold(resampled_img2.dataobj, resampled_img3)
+
+show_nifti(img)
+show_nifti(resampled_img2)
+show_nifti(resampled_img3)
 
 nib.save(resampled_img2, os.path.join(base_dir, 'prueba_resampled2.nii.gz'))
