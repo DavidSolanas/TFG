@@ -9,6 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from nilearn import image, plotting
 import nibabel as nib
+from skimage import measure
+from scipy import ndimage
 
 from src.Otsu import otsu_threshold
 
@@ -30,6 +32,27 @@ def show_nifti(src_image):
         show_slices([slice_0, slice_1, slice_2])
         plt.suptitle("Center slices for PET image")
 
+    plotting.show()
+
+
+def create_grid(src_image):
+    x, y, z, _ = src_image.shape
+    split = z // 16
+    slices = []
+    for i in range(0, 16, 1):
+        slices.append(src_image.dataobj[:, :, i * split])
+    return slices
+
+
+def show_grid(slices):
+    fig, axes = plt.subplots(4, 4)
+    cont = 0
+    for i in range(0, 4, 1):
+        for j in range(0, 4, 1):
+            axes[i, j].imshow(np.squeeze(slices[cont], axis=2), cmap="gray", origin="lower")
+            cont += 1
+
+    plt.suptitle("Center slices for PET image")
     plotting.show()
 
 
@@ -132,6 +155,15 @@ def resample_img(source_image, target_shape, voxel_dims=[2., 2., 2.]):
     return resampled_img
 
 
+def copy_data(src_dataobj, src_thresholded, dst_img):
+    x, y, z, _ = src_dataobj.shape
+    # Filter the image, if a value is less than the threshold is set to 0
+    for i in range(0, x):
+        for j in range(0, y):
+            for k in range(0, z):
+                dst_img.dataobj[i, j, k] = src_dataobj[i, j, k] if src_thresholded[i, j, k] == 1 else 0
+
+
 ####################################################
 
 base_dir = '/Users/david/Desktop/PET images'
@@ -142,14 +174,27 @@ img = nib.load(data_path)
 dim = (100, 100, 90)
 voxels = [2., 2., 2.]
 
-resampled_img2 = resample_img(img, dim, voxels)
+img_resampled = resample_img(img, dim, voxels)
 
-resampled_img3 = resample_img(img, dim, voxels)
+threshold_map = resample_img(img, dim, voxels)
+otsu_threshold.threshold(img_resampled.dataobj, threshold_map)
 
-otsu_threshold.threshold(resampled_img2.dataobj, resampled_img3)
+# Fill holes in the brain image
+for z in range(0, 90):
+    img_fill_holes = ndimage.binary_fill_holes(np.squeeze(threshold_map.dataobj[:, :, z], axis=2)).astype(int)
+    for x in range(0, 100):
+        for y in range(0, 100):
+            threshold_map.dataobj[x, y, z] = img_fill_holes[x, y]
 
-show_nifti(img)
-show_nifti(resampled_img2)
-show_nifti(resampled_img3)
+copy_data(img_resampled.dataobj, threshold_map.dataobj, img_resampled)
 
-nib.save(resampled_img2, os.path.join(base_dir, 'prueba_resampled2.nii.gz'))
+# Show filtered brain image and its threshold binary map
+show_nifti(threshold_map)
+show_nifti(img_resampled)
+
+# Show z-axis brain image
+slices = create_grid(img_resampled)
+show_grid(slices)
+
+# Save image
+nib.save(img_resampled, os.path.join(base_dir, 'prueba_resampled2.nii.gz'))

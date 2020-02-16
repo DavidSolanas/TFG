@@ -5,6 +5,7 @@
 """
 
 import numpy as np
+import math
 
 
 def threshold(src_data, dst_img):
@@ -25,7 +26,7 @@ def threshold(src_data, dst_img):
     """
     # Dimensions of the image and the max value of the image voxels
     x, y, z, _ = src_data.shape
-    top = int(src_data.max())
+    top = math.floor(src_data.max())
     # Number of voxels in the image
     total = x * y * z
     # Calculate the histogram of the image
@@ -34,12 +35,12 @@ def threshold(src_data, dst_img):
     for i in range(0, x):
         for j in range(0, y):
             for k in range(0, z):
-                val = int(src_data[i, j, k][0])
+                val = math.floor(src_data[i, j, k][0])
                 histogram[val] += 1
 
     # Apply the Otsu threshold,  minimizing the intra-class variance is equivalent to maximizing inter-class variance
     best_threshold = 0
-    sumb = .0
+    sumb = np.uint64(0)
     wb = .0
     max_inter_var = 0.0
     sum1 = np.dot(values, histogram)
@@ -55,10 +56,9 @@ def threshold(src_data, dst_img):
         # Update wb and sumb
         wb += histogram[_threshold]
         sumb += _threshold * histogram[_threshold]
-
+    print(best_threshold)
     # Filter the image, if a value is less than the threshold is set to 0
     for i in range(0, x):
         for j in range(0, y):
             for k in range(0, z):
-                dst_img.dataobj[i, j, k] = 0.0 if dst_img.dataobj[i, j, k] < best_threshold else dst_img.dataobj[
-                    i, j, k]
+                dst_img.dataobj[i, j, k] = 0 if dst_img.dataobj[i, j, k] < best_threshold else 1
