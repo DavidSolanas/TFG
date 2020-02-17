@@ -30,8 +30,7 @@ def threshold(src_data, dst_img):
     # Number of voxels in the image
     total = x * y * z
     # Calculate the histogram of the image
-    histogram = np.empty(top + 1, int)
-    values = np.array(range(0, top + 1))
+    histogram = np.zeros(top + 1, int)
     for i in range(0, x):
         for j in range(0, y):
             for k in range(0, z):
@@ -43,6 +42,7 @@ def threshold(src_data, dst_img):
     sumb = np.uint64(0)
     wb = .0
     max_inter_var = 0.0
+    values = np.array(range(0, top + 1))
     sum1 = np.dot(values, histogram)
     for _threshold in values:
         wf = total - wb
