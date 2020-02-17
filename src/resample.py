@@ -5,11 +5,11 @@
 """
 
 import os
-import numpy as np
+import sys
 import matplotlib.pyplot as plt
-from nilearn import image, plotting
 import nibabel as nib
-from skimage import measure
+import numpy as np
+from nilearn import image
 from scipy import ndimage
 
 from src.Otsu import otsu_threshold
@@ -31,8 +31,7 @@ def show_nifti(src_image):
         slice_2 = _img.dataobj[:, :, dims[2] // 2]
         show_slices([slice_0, slice_1, slice_2])
         plt.suptitle("Center slices for PET image")
-
-    plotting.show()
+    plt.draw()
 
 
 def create_grid(src_image):
@@ -53,7 +52,7 @@ def show_grid(slices):
             cont += 1
 
     plt.suptitle("Center slices for PET image")
-    plotting.show()
+    plt.draw()
 
 
 """
@@ -165,12 +164,14 @@ def copy_data(src_dataobj, src_thresholded, dst_img):
 
 
 ####################################################
+print(sys.argv)
 
 base_dir = '/Users/david/Desktop/PET images'
 data_path = os.path.join(base_dir,
                          'scanner_prueba2.nii')
 
 img = nib.load(data_path)
+print(img.dataobj.shape)
 dim = (100, 100, 90)
 voxels = [2., 2., 2.]
 
@@ -198,3 +199,5 @@ show_grid(slices)
 
 # Save image
 nib.save(img_resampled, os.path.join(base_dir, 'prueba_resampled2.nii.gz'))
+
+plt.show()
