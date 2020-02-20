@@ -36,10 +36,9 @@ def show_nifti(src_image):
 
 def create_grid(src_image):
     x, y, z, _ = src_image.shape
-    split = z // 16
     slices = []
-    for i in range(0, 16, 1):
-        slices.append(src_image.dataobj[:, :, i * split])
+    for i in range(32, 64, 2):
+        slices.append(np.rot90(src_image.dataobj[:, :, i]))
     return slices
 
 
@@ -66,7 +65,6 @@ def rescale_affine(input_affine, voxel_dims=[1, 1, 1], target_center_coords=None
     voxel dimensions. It allows for affines with off-diagonal elements by
     decomposing the affine matrix into u,s,v (or rather the numpy equivalents)
     and applying the scaling to the scaling matrix (s).
-
     Parameters
     ----------
     input_affine : np.array of shape 4,4
@@ -75,7 +73,6 @@ def rescale_affine(input_affine, voxel_dims=[1, 1, 1], target_center_coords=None
         Length in mm for x,y, and z dimensions of each voxel.
     target_center_coords: list of float
         3 numbers to specify the translation part of the affine if not using the same as the input_affine.
-
     Returns
     -------
     target_affine : 4x4matrix
@@ -108,7 +105,6 @@ def resample_img(source_image, target_shape, voxel_dims=[2., 2., 2.]):
     """
         This function resamples an input image to a specific (mm)
         isotropic voxels and crops it to a new dimensional pixel-grid.
-
         Parameters
         ----------
         source_image : nibabel.nifti1.Nifti1Image
@@ -117,7 +113,6 @@ def resample_img(source_image, target_shape, voxel_dims=[2., 2., 2.]):
             3 numbers to specify the dimensions of the resampled image.
         voxel_dims : list
             Length in mm for x,y, and z dimensions of each voxel.
-
         Returns
         -------
         resampled_img : nibabel.nifti1.Nifti1Image
@@ -189,9 +184,6 @@ for z in range(0, 90):
 
 copy_data(img_resampled.dataobj, threshold_map.dataobj, img_resampled)
 
-# Show filtered brain image and its threshold binary map
-show_nifti(threshold_map)
-show_nifti(img_resampled)
 
 # Show z-axis brain image
 slices = create_grid(img_resampled)
