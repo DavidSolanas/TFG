@@ -6,7 +6,6 @@
 
 import os
 import sys
-import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 from nilearn import image
@@ -14,45 +13,6 @@ from scipy import ndimage
 import math
 from skimage.filters import threshold_otsu
 from skimage.morphology import erosion, dilation
-
-
-def show_slices(slices):
-    """ Function to display row of image slices """
-    fig, axes = plt.subplots(1, len(slices))
-    for i, slice in enumerate(slices):
-        axes[i].imshow(slice.T, cmap="gray", origin="lower")
-
-
-def show_nifti(src_image):
-    dims = src_image.shape
-    for _img in image.iter_img(src_image):
-        # _img is now an in-memory 3D img
-        slice_0 = _img.dataobj[dims[0] // 2, :, :]
-        slice_1 = _img.dataobj[:, dims[1] // 2, :]
-        slice_2 = _img.dataobj[:, :, dims[2] // 2]
-        show_slices([slice_0, slice_1, slice_2])
-        plt.suptitle("Center slices for PET image")
-    plt.draw()
-
-
-def create_grid(src_image):
-    x, y, z, _ = src_image.shape
-    slices = []
-    for i in range(32, 64, 2):
-        slices.append(np.rot90(src_image.dataobj[:, :, i]))
-    return slices
-
-
-def show_grid(slices):
-    fig, axes = plt.subplots(4, 4)
-    cont = 0
-    for i in range(0, 4, 1):
-        for j in range(0, 4, 1):
-            axes[i, j].imshow(np.squeeze(slices[cont], axis=2), cmap="gray", origin="lower")
-            cont += 1
-
-    plt.suptitle("Center slices for PET image")
-    plt.draw()
 
 
 def resample_img(source_image, target_shape, voxel_dims=[2., 2., 2.]):
@@ -128,13 +88,17 @@ src_data = get_images(base)
 
 for data_path in src_data:
     img = nib.load(data_path)
+    print(data_path)
     dim = (100, 100, 90)
     voxels = [2., 2., 2.]
     img_resampled = resample_img(img, dim, voxels)
 
     # Otsu thresholding to remove noise
-    data = img_resampled.dataobj.copy()
-    thresh = threshold_otsu(data, nbins=math.ceil(img_resampled.dataobj.max()))
+    data = img_resampled.dataobj
+    if data.max() < 1.:
+        thresh = 0.015
+    else:
+        thresh = threshold_otsu(data, nbins=math.ceil(data.max()))
     thresholded = img_resampled.dataobj > thresh
 
     connectivity = np.ones(shape=(3, 3))
@@ -149,13 +113,6 @@ for data_path in src_data:
 
     copy_data(img_resampled.dataobj, thresholded, img_resampled)
 
-    # Show z-axis brain image
-    slices = create_grid(img_resampled)
-    # show_grid(slices)
-
-    # show_nifti(img)
-    # show_nifti(img_resampled)
     # Save image
     name_img = data_path.split('/')[-1] + '.gz'
     nib.save(img_resampled, os.path.join(dest, name_img))
-    # plt.show()
