@@ -10,7 +10,6 @@ import random
 import nibabel as nib
 import csv
 import subprocess
-from tifffile import imsave
 
 
 def create_grid(src_image):
@@ -87,6 +86,7 @@ for image in images:
     img = nib.load(path)
     slices = create_grid(img)
     matrix = create_data_matrix(slices)
+    matrix = matrix / matrix.max()
 
     a = image.split('_')
     patient_id = a[1] + '_' + a[2] + '_' + a[3]
@@ -97,44 +97,38 @@ for image in images:
             # Save to train directories
             if dx == 'CN':
                 cn_train_dir = os.path.join(train_dir, 'CN')
-                file = os.path.join(cn_train_dir, img_name + '.tiff')
+                file = os.path.join(cn_train_dir, img_name + '.npy')
                 subprocess.call(["touch", file])
-                imsave(file, matrix)
-                # np.save(file, matrix)
+                np.save(file, matrix)
 
             if dx == 'Dementia':
                 ad_train_dir = os.path.join(train_dir, 'AD')
-                file = os.path.join(ad_train_dir, img_name + '.tiff')
+                file = os.path.join(ad_train_dir, img_name + '.npy')
                 subprocess.call(["touch", file])
-                imsave(file, matrix)
-                # np.save(file, matrix)
+                np.save(file, matrix)
 
             if dx == 'MCI':
                 mci_train_dir = os.path.join(train_dir, 'MCI')
-                file = os.path.join(mci_train_dir, img_name + '.tiff')
+                file = os.path.join(mci_train_dir, img_name + '.npy')
                 subprocess.call(["touch", file])
-                imsave(file, matrix)
-                # np.save(file, matrix)
+                np.save(file, matrix)
         else:
             # Save to validation directories
             if dx == 'CN':
                 cn_val_dir = os.path.join(validation_dir, 'CN')
-                file = os.path.join(cn_val_dir, img_name + '.tiff')
+                file = os.path.join(cn_val_dir, img_name + '.npy')
                 subprocess.call(["touch", file])
-                imsave(file, matrix)
-                # np.save(file, matrix)
+                np.save(file, matrix)
             if dx == 'Dementia':
                 ad_val_dir = os.path.join(validation_dir, 'AD')
-                file = os.path.join(ad_val_dir, img_name + '.tiff')
+                file = os.path.join(ad_val_dir, img_name + '.npy')
                 subprocess.call(["touch", file])
-                imsave(file, matrix)
-                # np.save(file, matrix)
+                np.save(file, matrix)
             if dx == 'MCI':
                 mci_val_dir = os.path.join(validation_dir, 'MCI')
-                file = os.path.join(mci_val_dir, img_name + '.tiff')
+                file = os.path.join(mci_val_dir, img_name + '.npy')
                 subprocess.call(["touch", file])
-                imsave(file, matrix)
-                # np.save(file, matrix)
+                np.save(file, matrix)
 
         count += 1
 
