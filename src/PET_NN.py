@@ -54,7 +54,7 @@ def load_data(base_dir):
 
     for img_MCI in train_MCI_fnames:
         _x, _y = np.load(os.path.join(train_MCI_dir, img_MCI)), 2
-        X_train.append([_x])
+        X_train.append(_x)
         y_train.append(_y)
 
     # Test dataset
@@ -70,7 +70,7 @@ def load_data(base_dir):
 
     for img_MCI in validation_MCI_fnames:
         _x, _y = np.load(os.path.join(validation_MCI_dir, img_MCI)), 2
-        X_test.append([_x])
+        X_test.append(_x)
         y_test.append(_y)
 
     return X_train, y_train, X_test, y_test
