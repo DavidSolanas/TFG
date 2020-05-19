@@ -17,7 +17,6 @@ from vis.utils import utils
 import keras
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-import tensorflow as tf
 import seaborn as sns
 
 
@@ -180,8 +179,9 @@ def plot_saliency_map(model, X, y):
     model.layers[layer_index].activation = keras.activations.linear
     model = utils.apply_modifications(model)
 
+    print(model.summary())
     # Calculate saliency_map and visualize it
-    saliency = np.zeros((512, 512, 3))
+    saliency = np.zeros((512, 512))
     m = len(X)
 
     for i in range(m):  # Get input
@@ -193,7 +193,7 @@ def plot_saliency_map(model, X, y):
 
     fig = plt.figure(dpi=160)
     cax = plt.imshow((saliency * 255).astype(np.uint8), cmap='jet')
-    cbar = fig.colorbar(cax, ticks=[0, 110, 210])
+    cbar = fig.colorbar(cax, ticks=[0, 20, 40])
     cbar.ax.set_yticklabels(['Low', 'Medium', 'High'])  # horizontal colorbar
     plt.show()
 
@@ -274,6 +274,7 @@ def main():
     X_train = np.array(X_train)
     X_test = np.array(X_test)
     y_train2 = y_train
+    y_test2 = y_test
 
     # Reshape data to fit into the network
     X_train = X_train.reshape(len(y_train), 512, 512, 1)
@@ -283,13 +284,13 @@ def main():
     y_test = label_binarize(y_test, classes=[0, 1, 2])
 
     print('Plotting ROC curve...')
-    plot_ROC_curve(model, X_test, y_test)
+    # plot_ROC_curve(model, X_test, y_test)
 
     print('Plotting t-SNE...')
-    plot_tSNE(model, X_train, y_train2)
+    # plot_tSNE(model, X_train, y_train2)
 
     print('Plotting saliency map...')
-    plot_saliency_map(model, X_test, y_test)
+    plot_saliency_map(model, X_test, y_test2)
 
 
 if __name__ == '__main__':
