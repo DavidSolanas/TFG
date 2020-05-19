@@ -186,7 +186,7 @@ def main():
     # Train our model
     history = model.fit_generator(
         train_generator,
-        epochs=15,
+        epochs=5,
         verbose=1,
         steps_per_epoch=steps_per_epoch)
 
