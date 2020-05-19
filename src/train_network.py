@@ -184,7 +184,7 @@ def main():
                                          batch_size=batch_size)
 
     # Train our model
-    history = model.fit(
+    history = model.fit_generator(
         train_generator,
         epochs=15,
         verbose=1,

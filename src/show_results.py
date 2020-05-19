@@ -207,10 +207,13 @@ def plot_tSNE(model, X, y):
 
     # Get the output of layer 'dense_1' (1024 features) to reduce the dimension of that output
     layer_name = 'dense_1'
-    intermediate_layer_model = Model(inputs=model.input, outputs=model.get_layer(layer_name).output)
-    intermediate_output = intermediate_layer_model(tf.convert_to_tensor(X, dtype=np.float32))
+    print(model.summary())
+    intermediate_output = model.get_layer(layer_name).output
+    print(intermediate_output)
+    f = keras.backend.function([model.input], [intermediate_output])
     # Get the features generated when passing X data
-    features = keras.backend.eval(intermediate_output)
+    features = np.array(f([X]))
+    features = features.squeeze(0)
     print(features.shape)
     # Apply PCA and t-SNE
     pca_result = pca.fit_transform(features)
@@ -279,8 +282,13 @@ def main():
     # Binarize y data
     y_test = label_binarize(y_test, classes=[0, 1, 2])
 
+    print('Plotting ROC curve...')
     plot_ROC_curve(model, X_test, y_test)
+
+    print('Plotting t-SNE...')
     plot_tSNE(model, X_train, y_train2)
+
+    print('Plotting saliency map...')
     plot_saliency_map(model, X_test, y_test)
 
 
