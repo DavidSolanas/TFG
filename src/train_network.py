@@ -12,7 +12,6 @@ from keras.optimizers import Adam
 from keras.applications.inception_v3 import InceptionV3
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
-import keras
 from sklearn.preprocessing import label_binarize
 
 
@@ -101,27 +100,10 @@ def load_data(base_dir):
     return X_train, y_train, X_test, y_test
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("-d", "--directory", default=None, help="path to the directory where the images are stored")
-    ap.add_argument("-m", "--model", default="model.h5", help="path to the file where the model will be stored")
-    args = ap.parse_args()
-
-    base_dir = None
-    model_file = args.model
-
-    if args.directory is not None:
-        if not os.path.isdir(args.directory):
-            print("Directory \'%s\' does not exist" % args.directory)
-            return
-        base_dir = args.directory
-    else:
-        print("You must specify the directory where the images are stored (see help).")
-        return
-
+def get_model():
     # Define Inception V3 and freeze all its layers
     img_input = Input(shape=(512, 512, 1))
-    img_conc = keras.layers.Concatenate()([img_input, img_input, img_input])
+    img_conc = layers.Concatenate()([img_input, img_input, img_input])
 
     pre_trained_model = InceptionV3(include_top=False,
                                     input_shape=(512, 512, 3),
@@ -134,7 +116,6 @@ def main():
     last_layer = pre_trained_model.get_layer('mixed10')
     print('last layer output shape: ', last_layer.output_shape)
     last_output = last_layer.output
-
     # Add the top of the network
     # Flatten the output layer to 1 dimension
     x = layers.Flatten()(last_output)
@@ -153,6 +134,32 @@ def main():
     model.compile(optimizer=Adam(lr=0.0001),
                   loss='categorical_crossentropy',
                   metrics=['acc'])
+
+    return model
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-d", "--directory", default=None, help="path to the directory where the images are stored")
+    ap.add_argument("-m", "--model", default="model.h5", help="path to the file where the model will be stored")
+    args = ap.parse_args()
+
+    base_dir = None
+    model_file = args.model
+
+    if args.directory is not None:
+        if not os.path.isdir(args.directory):
+            print("Directory \'%s\' does not exist" % args.directory)
+            return
+        base_dir = args.directory
+    else:
+        print("You must specify the directory where the images are stored (see help).")
+        return
+
+    # Create a MirroredStrategy.
+    # strategy = tf.contrib.distribute.MirroredStrategy(devices=["/gpu:0", "/gpu:1"])
+    # with strategy.scope():
+    model = get_model()
 
     # Load the data
     X_train, y_train, X_test, y_test = load_data(base_dir)
