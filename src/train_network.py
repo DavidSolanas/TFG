@@ -12,7 +12,7 @@ from keras.optimizers import Adam
 from keras.applications.inception_v3 import InceptionV3
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
-from sklearn.preprocessing import label_binarize
+from keras.utils import to_categorical
 
 
 def load_data(base_dir):
@@ -41,73 +41,83 @@ def load_data(base_dir):
     y_test = []
 
     count = 0
+    load = 100 / 6
+    print('Loading images...')
     # Train dataset
     for img_AD in train_AD_fnames:
         _x, _y = np.load(os.path.join(train_AD_dir, img_AD)), 0
+        _x = np.stack((_x,) * 3, axis=-1)
         X_train.append(_x)
         y_train.append(_y)
-        if count > 100:
+        if count > 50:
             break
         count += 1
     count = 0
 
+    print('Loaded %.2f%% of the images...' % load)
     for img_CN in train_CN_fnames:
         _x, _y = np.load(os.path.join(train_CN_dir, img_CN)), 1
+        _x = np.stack((_x,) * 3, axis=-1)
         X_train.append(_x)
         y_train.append(_y)
-        if count > 100:
+        if count > 50:
             break
         count += 1
     count = 0
 
+    print('Loaded %.2f%% of the images...' % (load * 2))
     for img_MCI in train_MCI_fnames:
         _x, _y = np.load(os.path.join(train_MCI_dir, img_MCI)), 2
+        _x = np.stack((_x,) * 3, axis=-1)
         X_train.append(_x)
         y_train.append(_y)
-        if count > 100:
+        if count > 50:
             break
         count += 1
     count = 0
 
+    print('Loaded %.2f%% of the images...' % (load * 3))
     # Test dataset
     for img_AD in validation_AD_fnames:
         _x, _y = np.load(os.path.join(validation_AD_dir, img_AD)), 0
+        _x = np.stack((_x,) * 3, axis=-1)
         X_test.append(_x)
         y_test.append(_y)
-        if count > 10:
+        if count > 5:
             break
         count += 1
     count = 0
 
+    print('Loaded %.2f%% of the images...' % (load * 4))
     for img_CN in validation_CN_fnames:
         _x, _y = np.load(os.path.join(validation_CN_dir, img_CN)), 1
+        _x = np.stack((_x,) * 3, axis=-1)
         X_test.append(_x)
         y_test.append(_y)
-        if count > 10:
+        if count > 5:
             break
         count += 1
     count = 0
 
+    print('Loaded %.2f%% of the images...' % (load * 5))
     for img_MCI in validation_MCI_fnames:
         _x, _y = np.load(os.path.join(validation_MCI_dir, img_MCI)), 2
+        _x = np.stack((_x,) * 3, axis=-1)
         X_test.append(_x)
         y_test.append(_y)
-        if count > 10:
+        if count > 5:
             break
         count += 1
     count = 0
 
+    print('Load completed.')
     return X_train, y_train, X_test, y_test
 
 
 def get_model():
-    # Define Inception V3 and freeze all its layers
-    img_input = Input(shape=(512, 512, 1))
-    img_conc = layers.Concatenate()([img_input, img_input, img_input])
-
     pre_trained_model = InceptionV3(include_top=False,
                                     input_shape=(512, 512, 3),
-                                    weights='imagenet', input_tensor=img_conc)
+                                    weights='imagenet')
 
     for layer in pre_trained_model.layers:
         layer.trainable = False
@@ -120,7 +130,7 @@ def get_model():
     # Flatten the output layer to 1 dimension
     x = layers.Flatten()(last_output)
     # Add a dropout layer as means of regularization
-    x = layers.Dropout(rate=0.4)(x)
+    x = layers.Dropout(0.6)(x)
     # Add a fully connected layer with 1,024 hidden units and ReLU activation
     x = layers.Dense(1024, activation='relu')(x)
     # Add a fully connected layer with 1,024 hidden units and ReLU activation
@@ -139,6 +149,7 @@ def get_model():
 
 
 def main():
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     ap = argparse.ArgumentParser()
     ap.add_argument("-d", "--directory", default=None, help="path to the directory where the images are stored")
     ap.add_argument("-m", "--model", default="model.h5", help="path to the file where the model will be stored")
@@ -156,9 +167,7 @@ def main():
         print("You must specify the directory where the images are stored (see help).")
         return
 
-    # Create a MirroredStrategy.
-    # strategy = tf.contrib.distribute.MirroredStrategy(devices=["/gpu:0", "/gpu:1"])
-    # with strategy.scope():
+    # Get the model compiled
     model = get_model()
 
     # Load the data
@@ -169,12 +178,12 @@ def main():
     X_test = np.array(X_test)
 
     # Reshape data to fit into the network
-    X_train = X_train.reshape(len(y_train), 512, 512, 1)
-    X_test = X_test.reshape(len(y_test), 512, 512, 1)
+    # X_train = X_train.reshape(len(y_train), 512, 512, 1)
+    # X_test = X_test.reshape(len(y_test), 512, 512, 1)
 
     # Binarize y data
-    y_train = label_binarize(y_train, classes=[0, 1, 2])
-    y_test = label_binarize(y_test, classes=[0, 1, 2])
+    y_train = to_categorical(y_train)
+    y_test = to_categorical(y_test)
 
     # Add our data-augmentation parameters to ImageDataGenerator
     train_datagen = ImageDataGenerator(width_shift_range=0.1,
@@ -193,9 +202,9 @@ def main():
     # Train our model
     history = model.fit_generator(
         train_generator,
-        epochs=5,
+        epochs=30,
         verbose=1,
-        steps_per_epoch=steps_per_epoch)
+        steps_per_epoch=steps_per_epoch, shuffle=True)
 
     # Get the score of the model with test dataset
     score = model.evaluate(X_test, y_test, verbose=0)

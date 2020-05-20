@@ -11,7 +11,7 @@ from itertools import cycle
 from sklearn.metrics import roc_curve, auc
 import numpy as np
 from keras.models import load_model
-from sklearn.preprocessing import label_binarize
+from keras.utils import to_categorical
 from vis.visualization import visualize_saliency
 from vis.utils import utils
 import keras
@@ -46,62 +46,76 @@ def load_data(base_dir):
     y_test = []
 
     count = 0
+    load = 100 / 6
+    print('Loading images...')
     # Train dataset
     for img_AD in train_AD_fnames:
         _x, _y = np.load(os.path.join(train_AD_dir, img_AD)), 0
+        _x = np.stack((_x,) * 3, axis=-1)
         X_train.append(_x)
         y_train.append(_y)
-        if count > 100:
+        if count > 50:
             break
         count += 1
     count = 0
 
+    print('Loaded %.2f%% of the images...' % load)
     for img_CN in train_CN_fnames:
         _x, _y = np.load(os.path.join(train_CN_dir, img_CN)), 1
+        _x = np.stack((_x,) * 3, axis=-1)
         X_train.append(_x)
         y_train.append(_y)
-        if count > 100:
+        if count > 50:
             break
         count += 1
     count = 0
 
+    print('Loaded %.2f%% of the images...' % (load * 2))
     for img_MCI in train_MCI_fnames:
         _x, _y = np.load(os.path.join(train_MCI_dir, img_MCI)), 2
+        _x = np.stack((_x,) * 3, axis=-1)
         X_train.append(_x)
         y_train.append(_y)
-        if count > 100:
+        if count > 50:
             break
         count += 1
     count = 0
 
+    print('Loaded %.2f%% of the images...' % (load * 3))
     # Test dataset
     for img_AD in validation_AD_fnames:
         _x, _y = np.load(os.path.join(validation_AD_dir, img_AD)), 0
+        _x = np.stack((_x,) * 3, axis=-1)
         X_test.append(_x)
         y_test.append(_y)
-        if count > 10:
+        if count > 5:
             break
         count += 1
     count = 0
 
+    print('Loaded %.2f%% of the images...' % (load * 4))
     for img_CN in validation_CN_fnames:
         _x, _y = np.load(os.path.join(validation_CN_dir, img_CN)), 1
+        _x = np.stack((_x,) * 3, axis=-1)
         X_test.append(_x)
         y_test.append(_y)
-        if count > 10:
+        if count > 5:
             break
         count += 1
     count = 0
 
+    print('Loaded %.2f%% of the images...' % (load * 5))
     for img_MCI in validation_MCI_fnames:
         _x, _y = np.load(os.path.join(validation_MCI_dir, img_MCI)), 2
+        _x = np.stack((_x,) * 3, axis=-1)
         X_test.append(_x)
         y_test.append(_y)
-        if count > 10:
+        if count > 5:
             break
         count += 1
     count = 0
 
+    print('Load completed.')
     return X_train, y_train, X_test, y_test
 
 
@@ -179,7 +193,6 @@ def plot_saliency_map(model, X, y):
     model.layers[layer_index].activation = keras.activations.linear
     model = utils.apply_modifications(model)
 
-    print(model.summary())
     # Calculate saliency_map and visualize it
     saliency = np.zeros((512, 512))
     m = len(X)
@@ -192,8 +205,8 @@ def plot_saliency_map(model, X, y):
     saliency /= m
 
     fig = plt.figure(dpi=160)
-    cax = plt.imshow((saliency * 255).astype(np.uint8), cmap='jet')
-    cbar = fig.colorbar(cax, ticks=[0, 20, 40])
+    cax = plt.imshow((saliency / saliency.max() * 255).astype(np.uint8), cmap='jet')
+    cbar = fig.colorbar(cax, ticks=[0, 110, 220])
     cbar.ax.set_yticklabels(['Low', 'Medium', 'High'])  # horizontal colorbar
     plt.show()
 
@@ -207,7 +220,6 @@ def plot_tSNE(model, X, y):
 
     # Get the output of layer 'dense_1' (1024 features) to reduce the dimension of that output
     layer_name = 'dense_1'
-    print(model.summary())
     intermediate_output = model.get_layer(layer_name).output
     print(intermediate_output)
     f = keras.backend.function([model.input], [intermediate_output])
@@ -238,6 +250,7 @@ def plot_tSNE(model, X, y):
 
 
 def main():
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     ap = argparse.ArgumentParser()
     ap.add_argument("-d", "--directory", default=None, help="path to the directory where the images are stored")
     ap.add_argument("-m", "--model", default=None, help="path to the file where the model is stored")
@@ -277,17 +290,17 @@ def main():
     y_test2 = y_test
 
     # Reshape data to fit into the network
-    X_train = X_train.reshape(len(y_train), 512, 512, 1)
-    X_test = X_test.reshape(len(y_test), 512, 512, 1)
+    # X_train = X_train.reshape(len(y_train), 512, 512, 1)
+    # X_test = X_test.reshape(len(y_test), 512, 512, 1)
 
     # Binarize y data
-    y_test = label_binarize(y_test, classes=[0, 1, 2])
+    y_test = to_categorical(y_test)
 
     print('Plotting ROC curve...')
-    # plot_ROC_curve(model, X_test, y_test)
+    plot_ROC_curve(model, X_test, y_test)
 
     print('Plotting t-SNE...')
-    # plot_tSNE(model, X_train, y_train2)
+    plot_tSNE(model, X_train, y_train2)
 
     print('Plotting saliency map...')
     plot_saliency_map(model, X_test, y_test2)
