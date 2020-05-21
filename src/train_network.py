@@ -45,50 +45,75 @@ def load_data(base_dir):
     x_test = []
     y_test = []
 
+    count = 0
     load = 100 / 6
     print('Loading images...')
     # Train dataset
     for img_AD in train_ad_fnames:
         _x, _y = np.load(os.path.join(train_ad_dir, img_AD)), 0
-        # _x = np.stack((_x,) * 3, axis=-1)
+        _x = np.stack((_x,) * 3, axis=-1)
         x_train.append(_x)
         y_train.append(_y)
+        if count > 331:
+            break
+        count += 1
+    count = 0
 
     print('Loaded %.2f%% of the images...' % load)
     for img_CN in train_cn_fnames:
         _x, _y = np.load(os.path.join(train_cn_dir, img_CN)), 1
-        # _x = np.stack((_x,) * 3, axis=-1)
+        _x = np.stack((_x,) * 3, axis=-1)
         x_train.append(_x)
         y_train.append(_y)
+        if count > 331:
+            break
+        count += 1
+    count = 0
 
     print('Loaded %.2f%% of the images...' % (load * 2))
     for img_MCI in train_mci_fnames:
         _x, _y = np.load(os.path.join(train_mci_dir, img_MCI)), 2
-        # _x = np.stack((_x,) * 3, axis=-1)
+        _x = np.stack((_x,) * 3, axis=-1)
         x_train.append(_x)
         y_train.append(_y)
+        if count > 331:
+            break
+        count += 1
+    count = 0
 
     print('Loaded %.2f%% of the images...' % (load * 3))
     # Test dataset
     for img_AD in validation_ad_fnames:
         _x, _y = np.load(os.path.join(validation_ad_dir, img_AD)), 0
-        # _x = np.stack((_x,) * 3, axis=-1)
+        _x = np.stack((_x,) * 3, axis=-1)
         x_test.append(_x)
         y_test.append(_y)
+        if count > 31:
+            break
+        count += 1
+    count = 0
 
     print('Loaded %.2f%% of the images...' % (load * 4))
     for img_CN in validation_cn_fnames:
         _x, _y = np.load(os.path.join(validation_cn_dir, img_CN)), 1
-        # _x = np.stack((_x,) * 3, axis=-1)
+        _x = np.stack((_x,) * 3, axis=-1)
         x_test.append(_x)
         y_test.append(_y)
+        if count > 31:
+            break
+        count += 1
+    count = 0
 
     print('Loaded %.2f%% of the images...' % (load * 5))
     for img_MCI in validation_mci_fnames:
         _x, _y = np.load(os.path.join(validation_mci_dir, img_MCI)), 2
-        # _x = np.stack((_x,) * 3, axis=-1)
+        _x = np.stack((_x,) * 3, axis=-1)
         x_test.append(_x)
         y_test.append(_y)
+        if count > 31:
+            break
+        count += 1
+    count = 0
 
     print('Load completed.')
 
@@ -108,21 +133,17 @@ def load_data(base_dir):
     y_train, y_validation = y_train[train_indices, :], y_train[validation_indices, :]
 
     # Reshape data to fit into the network
-    x_train = x_train.reshape(len(y_train), 512, 512, 1)
-    x_validation = x_validation.reshape(len(y_validation), 512, 512, 1)
-    x_test = x_test.reshape(len(y_test), 512, 512, 1)
+    # x_train = x_train.reshape(len(y_train), 512, 512, 1)
+    # x_validation = x_validation.reshape(len(y_validation), 512, 512, 1)
+    # x_test = x_test.reshape(len(y_test), 512, 512, 1)
 
     return x_train, y_train, x_validation, y_validation, x_test, y_test
 
 
 def get_model():
-    img_input = Input(shape=(512, 512, 1))
-    img_conc = layers.Concatenate()([img_input, img_input, img_input])
-
     pre_trained_model = InceptionV3(include_top=False,
-                                    input_shape=(512, 512, 3),
                                     weights='imagenet',
-                                    input_tensor=img_conc)
+                                    input_shape=(512, 512, 3))
 
     for layer in pre_trained_model.layers:
         layer.trainable = False
@@ -131,9 +152,11 @@ def get_model():
     last_layer = pre_trained_model.get_layer('mixed10')
     print('last layer output shape: ', last_layer.output_shape)
     last_output = last_layer.output
+
     # Add the top of the network
+    x = layers.AveragePooling2D()(last_output)
     # Flatten the output layer to 1 dimension
-    x = layers.Flatten()(last_output)
+    x = layers.Flatten()(x)
     # Add a dropout layer as means of regularization
     x = layers.Dropout(0.6)(x)
     # Add a fully connected layer with 1,024 hidden units and ReLU activation
@@ -145,6 +168,8 @@ def get_model():
 
     # Create and compile the model
     model = Model(pre_trained_model.input, x)
+
+    print(model.summary())
 
     model.compile(optimizer=Adam(lr=0.0001),
                   loss='categorical_crossentropy',
