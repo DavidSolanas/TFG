@@ -51,7 +51,7 @@ def load_data(base_dir):
     # Train dataset
     for img_AD in train_ad_fnames:
         _x, _y = np.load(os.path.join(train_ad_dir, img_AD)), 0
-        _x = np.stack((_x,) * 3, axis=-1)
+        # _x = np.stack((_x,) * 3, axis=-1)
         x_train.append(_x)
         y_train.append(_y)
         if count > 331:
@@ -62,7 +62,7 @@ def load_data(base_dir):
     print('Loaded %.2f%% of the images...' % load)
     for img_CN in train_cn_fnames:
         _x, _y = np.load(os.path.join(train_cn_dir, img_CN)), 1
-        _x = np.stack((_x,) * 3, axis=-1)
+        # _x = np.stack((_x,) * 3, axis=-1)
         x_train.append(_x)
         y_train.append(_y)
         if count > 331:
@@ -73,7 +73,7 @@ def load_data(base_dir):
     print('Loaded %.2f%% of the images...' % (load * 2))
     for img_MCI in train_mci_fnames:
         _x, _y = np.load(os.path.join(train_mci_dir, img_MCI)), 2
-        _x = np.stack((_x,) * 3, axis=-1)
+        # _x = np.stack((_x,) * 3, axis=-1)
         x_train.append(_x)
         y_train.append(_y)
         if count > 331:
@@ -85,7 +85,7 @@ def load_data(base_dir):
     # Test dataset
     for img_AD in validation_ad_fnames:
         _x, _y = np.load(os.path.join(validation_ad_dir, img_AD)), 0
-        _x = np.stack((_x,) * 3, axis=-1)
+        # _x = np.stack((_x,) * 3, axis=-1)
         x_test.append(_x)
         y_test.append(_y)
         if count > 31:
@@ -96,7 +96,7 @@ def load_data(base_dir):
     print('Loaded %.2f%% of the images...' % (load * 4))
     for img_CN in validation_cn_fnames:
         _x, _y = np.load(os.path.join(validation_cn_dir, img_CN)), 1
-        _x = np.stack((_x,) * 3, axis=-1)
+        # _x = np.stack((_x,) * 3, axis=-1)
         x_test.append(_x)
         y_test.append(_y)
         if count > 31:
@@ -107,7 +107,7 @@ def load_data(base_dir):
     print('Loaded %.2f%% of the images...' % (load * 5))
     for img_MCI in validation_mci_fnames:
         _x, _y = np.load(os.path.join(validation_mci_dir, img_MCI)), 2
-        _x = np.stack((_x,) * 3, axis=-1)
+        # _x = np.stack((_x,) * 3, axis=-1)
         x_test.append(_x)
         y_test.append(_y)
         if count > 31:
@@ -133,28 +133,31 @@ def load_data(base_dir):
     y_train, y_validation = y_train[train_indices, :], y_train[validation_indices, :]
 
     # Reshape data to fit into the network
-    # x_train = x_train.reshape(len(y_train), 512, 512, 1)
-    # x_validation = x_validation.reshape(len(y_validation), 512, 512, 1)
-    # x_test = x_test.reshape(len(y_test), 512, 512, 1)
+    x_train = x_train.reshape(len(y_train), 512, 512, 1)
+    x_validation = x_validation.reshape(len(y_validation), 512, 512, 1)
+    x_test = x_test.reshape(len(y_test), 512, 512, 1)
 
     return x_train, y_train, x_validation, y_validation, x_test, y_test
 
 
 def get_model():
-    pre_trained_model = InceptionV3(include_top=False,
-                                    weights='imagenet',
-                                    input_shape=(512, 512, 3))
+    input_tensor = Input(shape=(512, 512, 1))
+    x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(input_tensor)
+    x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(x)
+    x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(x)
+    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = layers.Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+    x = layers.Conv2D(3, (3, 3), activation='relu', padding='same')(x)
+    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
-    for layer in pre_trained_model.layers:
+    inception_model = InceptionV3(weights='imagenet', include_top=False, input_shape=(128, 128, 3))
+    for layer in inception_model.layers:
         layer.trainable = False
 
-    # Get the last layer of Inception V3
-    last_layer = pre_trained_model.get_layer('mixed10')
-    print('last layer output shape: ', last_layer.output_shape)
-    last_output = last_layer.output
+    x = inception_model(x)
 
     # Add the top of the network
-    x = layers.AveragePooling2D()(last_output)
+    x = layers.AveragePooling2D()(x)
     # Flatten the output layer to 1 dimension
     x = layers.Flatten()(x)
     # Add a dropout layer as means of regularization
@@ -167,8 +170,8 @@ def get_model():
     x = layers.Dense(3, activation='softmax')(x)
 
     # Create and compile the model
-    model = Model(pre_trained_model.input, x)
-
+    model = Model(input_tensor, x)
+    print('AAAAAAAAAAAAAAAa')
     print(model.summary())
 
     model.compile(optimizer=Adam(lr=0.0001),
@@ -243,14 +246,14 @@ def main():
     validation_generator = validation_datagen.flow(x_validation, y_validation, shuffle=True, batch_size=batch_size)
 
     # Before training, set EarlyStopping when validation_loss does not decrease
-    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=20)
+    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=75)
 
     mc = ModelCheckpoint(filepath=model_file, monitor='val_acc', mode='max', verbose=1, save_best_only=True)
 
     # Train our model
     history = model.fit_generator(
         train_generator,
-        epochs=100,
+        epochs=500,
         verbose=1,
         steps_per_epoch=steps_per_epoch,
         shuffle=True,
@@ -260,7 +263,7 @@ def main():
     )
 
     # Plot the history of the training
-    plot_history(history)
+    # plot_history(history)
 
     # Load the best model
     model = load_model(model_file)
