@@ -24,99 +24,87 @@ def load_data(base_dir):
     train_dir = os.path.join(base_dir, 'train')
     validation_dir = os.path.join(base_dir, 'validation')
 
-    train_AD_dir = os.path.join(train_dir, 'AD')  # Directory with our training cat pictures
-    train_CN_dir = os.path.join(train_dir, 'CN')  # Directory with our training cat pictures
-    train_MCI_dir = os.path.join(train_dir, 'MCI')  # Directory with our training dog pictures
+    train_ad_dir = os.path.join(train_dir, 'AD')  # Directory with our training cat pictures
+    train_cn_dir = os.path.join(train_dir, 'CN')  # Directory with our training cat pictures
+    train_mci_dir = os.path.join(train_dir, 'MCI')  # Directory with our training dog pictures
 
-    validation_AD_dir = os.path.join(validation_dir, 'AD')  # Directory with our training cat pictures
-    validation_CN_dir = os.path.join(validation_dir, 'CN')  # Directory with our training cat pictures
-    validation_MCI_dir = os.path.join(validation_dir, 'MCI')  # Directory with our training dog pictures
+    validation_ad_dir = os.path.join(validation_dir, 'AD')  # Directory with our training cat pictures
+    validation_cn_dir = os.path.join(validation_dir, 'CN')  # Directory with our training cat pictures
+    validation_mci_dir = os.path.join(validation_dir, 'MCI')  # Directory with our training dog pictures
 
-    train_AD_fnames = os.listdir(train_AD_dir)
-    train_CN_fnames = os.listdir(train_CN_dir)
-    train_MCI_fnames = os.listdir(train_MCI_dir)
+    train_ad_fnames = os.listdir(train_ad_dir)
+    train_cn_fnames = os.listdir(train_cn_dir)
+    train_mci_fnames = os.listdir(train_mci_dir)
 
-    validation_AD_fnames = os.listdir(validation_AD_dir)
-    validation_CN_fnames = os.listdir(validation_CN_dir)
-    validation_MCI_fnames = os.listdir(validation_MCI_dir)
+    validation_ad_fnames = os.listdir(validation_ad_dir)
+    validation_cn_fnames = os.listdir(validation_cn_dir)
+    validation_mci_fnames = os.listdir(validation_mci_dir)
 
-    X_train = []
+    x_train = []
     y_train = []
-    X_test = []
+    x_test = []
     y_test = []
 
-    count = 0
     load = 100 / 6
     print('Loading images...')
     # Train dataset
-    for img_AD in train_AD_fnames:
-        _x, _y = np.load(os.path.join(train_AD_dir, img_AD)), 0
-        _x = np.stack((_x,) * 3, axis=-1)
-        X_train.append(_x)
+    for img_AD in train_ad_fnames:
+        _x, _y = np.load(os.path.join(train_ad_dir, img_AD)), 0
+        # _x = np.stack((_x,) * 3, axis=-1)
+        x_train.append(_x)
         y_train.append(_y)
-        if count > 50:
-            break
-        count += 1
-    count = 0
 
     print('Loaded %.2f%% of the images...' % load)
-    for img_CN in train_CN_fnames:
-        _x, _y = np.load(os.path.join(train_CN_dir, img_CN)), 1
-        _x = np.stack((_x,) * 3, axis=-1)
-        X_train.append(_x)
+    for img_CN in train_cn_fnames:
+        _x, _y = np.load(os.path.join(train_cn_dir, img_CN)), 1
+        # _x = np.stack((_x,) * 3, axis=-1)
+        x_train.append(_x)
         y_train.append(_y)
-        if count > 50:
-            break
-        count += 1
-    count = 0
 
     print('Loaded %.2f%% of the images...' % (load * 2))
-    for img_MCI in train_MCI_fnames:
-        _x, _y = np.load(os.path.join(train_MCI_dir, img_MCI)), 2
-        _x = np.stack((_x,) * 3, axis=-1)
-        X_train.append(_x)
+    for img_MCI in train_mci_fnames:
+        _x, _y = np.load(os.path.join(train_mci_dir, img_MCI)), 2
+        # _x = np.stack((_x,) * 3, axis=-1)
+        x_train.append(_x)
         y_train.append(_y)
-        if count > 50:
-            break
-        count += 1
-    count = 0
 
     print('Loaded %.2f%% of the images...' % (load * 3))
     # Test dataset
-    for img_AD in validation_AD_fnames:
-        _x, _y = np.load(os.path.join(validation_AD_dir, img_AD)), 0
-        _x = np.stack((_x,) * 3, axis=-1)
-        X_test.append(_x)
+    for img_AD in validation_ad_fnames:
+        _x, _y = np.load(os.path.join(validation_ad_dir, img_AD)), 0
+        # _x = np.stack((_x,) * 3, axis=-1)
+        x_test.append(_x)
         y_test.append(_y)
-        if count > 5:
-            break
-        count += 1
-    count = 0
 
     print('Loaded %.2f%% of the images...' % (load * 4))
-    for img_CN in validation_CN_fnames:
-        _x, _y = np.load(os.path.join(validation_CN_dir, img_CN)), 1
-        _x = np.stack((_x,) * 3, axis=-1)
-        X_test.append(_x)
+    for img_CN in validation_cn_fnames:
+        _x, _y = np.load(os.path.join(validation_cn_dir, img_CN)), 1
+        # _x = np.stack((_x,) * 3, axis=-1)
+        x_test.append(_x)
         y_test.append(_y)
-        if count > 5:
-            break
-        count += 1
-    count = 0
 
     print('Loaded %.2f%% of the images...' % (load * 5))
-    for img_MCI in validation_MCI_fnames:
-        _x, _y = np.load(os.path.join(validation_MCI_dir, img_MCI)), 2
-        _x = np.stack((_x,) * 3, axis=-1)
-        X_test.append(_x)
+    for img_MCI in validation_mci_fnames:
+        _x, _y = np.load(os.path.join(validation_mci_dir, img_MCI)), 2
+        # _x = np.stack((_x,) * 3, axis=-1)
+        x_test.append(_x)
         y_test.append(_y)
-        if count > 5:
-            break
-        count += 1
-    count = 0
 
     print('Load completed.')
-    return X_train, y_train, X_test, y_test
+
+    # Convert data to numpy array
+    x_train = np.array(x_train)
+    x_test = np.array(x_test)
+    y_train = np.array(y_train)
+    y_test = np.array(y_test)
+    permutation_index = np.random.permutation(len(y_train))
+    x_train, y_train = x_train[permutation_index, :], y_train[permutation_index]
+
+    # Reshape data to fit into the network
+    x_train = x_train.reshape(len(y_train), 512, 512, 1)
+    x_test = x_test.reshape(len(y_test), 512, 512, 1)
+
+    return x_train, y_train, x_test, y_test
 
 
 def get_class(y):
@@ -132,7 +120,7 @@ def get_class(y):
     return y_string
 
 
-def plot_ROC_curve(model, X, y):
+def plot_roc_curve(model, x, y):
     # Plot linewidth.
     lw = 2
     n_classes = 3
@@ -140,7 +128,7 @@ def plot_ROC_curve(model, X, y):
     fpr = dict()
     tpr = dict()
     roc_auc = dict()
-    y_score = model.predict(X)
+    y_score = model.predict(x)
     for i in range(n_classes):
         fpr[i], tpr[i], _ = roc_curve(y[:, i], y_score[:, i])
         roc_auc[i] = auc(fpr[i], tpr[i])
@@ -185,7 +173,7 @@ def plot_ROC_curve(model, X, y):
     plt.show()
 
 
-def plot_saliency_map(model, X, y):
+def plot_saliency_map(model, x, y):
     # Find the index of the to be visualized layer above
     layer_index = utils.find_layer_idx(model, 'dense_3')
 
@@ -195,10 +183,10 @@ def plot_saliency_map(model, X, y):
 
     # Calculate saliency_map and visualize it
     saliency = np.zeros((512, 512))
-    m = len(X)
+    m = len(x)
 
     for i in range(m):  # Get input
-        input_image = X[i]
+        input_image = x[i]
         input_class = y[i]  # Matplotlib preparations
         saliency += visualize_saliency(model, layer_index, filter_indices=input_class, seed_input=input_image)
 
@@ -211,7 +199,7 @@ def plot_saliency_map(model, X, y):
     plt.show()
 
 
-def plot_tSNE(model, X, y):
+def plot_tsne(model, x, y):
     # First apply PCA to reduce to 30 dims
     pca = PCA(n_components=30)
 
@@ -224,7 +212,7 @@ def plot_tSNE(model, X, y):
     print(intermediate_output)
     f = keras.backend.function([model.input], [intermediate_output])
     # Get the features generated when passing X data
-    features = np.array(f([X]))
+    features = np.array(f([x]))
     features = features.squeeze(0)
     print(features.shape)
     # Apply PCA and t-SNE
@@ -250,7 +238,6 @@ def plot_tSNE(model, X, y):
 
 
 def main():
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     ap = argparse.ArgumentParser()
     ap.add_argument("-d", "--directory", default=None, help="path to the directory where the images are stored")
     ap.add_argument("-m", "--model", default=None, help="path to the file where the model is stored")
@@ -281,33 +268,31 @@ def main():
     model = load_model(model_file)
 
     # Load the data
-    X_train, y_train, X_test, y_test = load_data(base_dir)
+    x_train, y_train, x_test, y_test = load_data(base_dir)
 
     # Convert data to numpy array
-    X_train = np.array(X_train)
-    X_test = np.array(X_test)
+    x_train = np.array(x_train)
+    x_test = np.array(x_test)
     y_train2 = y_train
     y_test2 = y_test
-
-    # Reshape data to fit into the network
-    # X_train = X_train.reshape(len(y_train), 512, 512, 1)
-    # X_test = X_test.reshape(len(y_test), 512, 512, 1)
 
     # Binarize y data
     y_test = to_categorical(y_test)
 
     print('Plotting ROC curve...')
-    plot_ROC_curve(model, X_test, y_test)
+    plot_roc_curve(model, x_test, y_test)
 
     print('Plotting t-SNE...')
-    plot_tSNE(model, X_train, y_train2)
+    plot_tsne(model, x_train, y_train2)
 
     print('Plotting saliency map...')
-    plot_saliency_map(model, X_test, y_test2)
+    plot_saliency_map(model, x_test, y_test2)
 
 
 if __name__ == '__main__':
     """ 
     Match input image or current life video feed with the selected template
     """
+    # GPU memory growth and just use GPU 0
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # only see the gpu 0
     main()
