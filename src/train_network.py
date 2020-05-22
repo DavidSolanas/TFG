@@ -18,6 +18,7 @@ import numpy as np
 from keras.utils import to_categorical
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import pickle
 
 
 def load_data(base_dir):
@@ -54,10 +55,6 @@ def load_data(base_dir):
         # _x = np.stack((_x,) * 3, axis=-1)
         x_train.append(_x)
         y_train.append(_y)
-        if count > 331:
-            break
-        count += 1
-    count = 0
 
     print('Loaded %.2f%% of the images...' % load)
     for img_CN in train_cn_fnames:
@@ -65,10 +62,6 @@ def load_data(base_dir):
         # _x = np.stack((_x,) * 3, axis=-1)
         x_train.append(_x)
         y_train.append(_y)
-        if count > 331:
-            break
-        count += 1
-    count = 0
 
     print('Loaded %.2f%% of the images...' % (load * 2))
     for img_MCI in train_mci_fnames:
@@ -76,10 +69,6 @@ def load_data(base_dir):
         # _x = np.stack((_x,) * 3, axis=-1)
         x_train.append(_x)
         y_train.append(_y)
-        if count > 331:
-            break
-        count += 1
-    count = 0
 
     print('Loaded %.2f%% of the images...' % (load * 3))
     # Test dataset
@@ -88,10 +77,6 @@ def load_data(base_dir):
         # _x = np.stack((_x,) * 3, axis=-1)
         x_test.append(_x)
         y_test.append(_y)
-        if count > 31:
-            break
-        count += 1
-    count = 0
 
     print('Loaded %.2f%% of the images...' % (load * 4))
     for img_CN in validation_cn_fnames:
@@ -99,10 +84,6 @@ def load_data(base_dir):
         # _x = np.stack((_x,) * 3, axis=-1)
         x_test.append(_x)
         y_test.append(_y)
-        if count > 31:
-            break
-        count += 1
-    count = 0
 
     print('Loaded %.2f%% of the images...' % (load * 5))
     for img_MCI in validation_mci_fnames:
@@ -110,27 +91,24 @@ def load_data(base_dir):
         # _x = np.stack((_x,) * 3, axis=-1)
         x_test.append(_x)
         y_test.append(_y)
-        if count > 31:
-            break
-        count += 1
-    count = 0
 
     print('Load completed.')
 
     # Convert data to numpy array
     x_train = np.array(x_train)
     x_test = np.array(x_test)
-
+    y_train = np.array(y_train, dtype=np.uint8)
+    y_test = np.array(y_test, dtype=np.uint8)
     # Binarize y data
-    y_train = to_categorical(y_train)
-    y_test = to_categorical(y_test)
+    # y_train = to_categorical(y_train)
+    # y_test = to_categorical(y_test)
 
     split = int(len(y_train) * .9)
     permutation_index = np.random.permutation(len(y_train))
     train_indices, validation_indices = permutation_index[:split], permutation_index[split:]
 
     x_train, x_validation = x_train[train_indices, :], x_train[validation_indices, :]
-    y_train, y_validation = y_train[train_indices, :], y_train[validation_indices, :]
+    y_train, y_validation = y_train[train_indices], y_train[validation_indices]
 
     # Reshape data to fit into the network
     x_train = x_train.reshape(len(y_train), 512, 512, 1)
@@ -145,7 +123,7 @@ def get_model():
     x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(input_tensor)
     x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(x)
     x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = layers.MaxPooling2D(pool_size=(1, 1))(x)
     x = layers.Conv2D(64, (3, 3), activation='relu', padding='same')(x)
     x = layers.Conv2D(3, (3, 3), activation='relu', padding='same')(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
@@ -164,42 +142,23 @@ def get_model():
     x = layers.Dropout(0.6)(x)
     # Add a fully connected layer with 1,024 hidden units and ReLU activation
     x = layers.Dense(1024, activation='relu')(x)
-    # Add a fully connected layer with 1,024 hidden units and ReLU activation
+    # Add a fully connected layer with 512 hidden units and ReLU activation
     x = layers.Dense(512, activation='relu')(x)
+    # Add a fully connected layer with 3 hidden units and ReLU activation
+    x = layers.Dense(3, activation='relu')(x)
     # Add a final sigmoid layer for classification
-    x = layers.Dense(3, activation='softmax')(x)
+    x = layers.Softmax()(x)
 
     # Create and compile the model
     model = Model(input_tensor, x)
-    print('AAAAAAAAAAAAAAAa')
+
     print(model.summary())
 
     model.compile(optimizer=Adam(lr=0.0001),
-                  loss='categorical_crossentropy',
+                  loss='sparse_categorical_crossentropy',
                   metrics=['acc'])
 
     return model
-
-
-def plot_history(history):
-    # list all data in history
-    print(history.history.keys())
-    # summarize history for accuracy
-    plt.plot(history.history['acc'])
-    plt.plot(history.history['val_acc'])
-    plt.title('model accuracy')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.show()
-    # summarize history for loss
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('model loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.show()
 
 
 def main():
@@ -253,7 +212,7 @@ def main():
     # Train our model
     history = model.fit_generator(
         train_generator,
-        epochs=500,
+        epochs=10,
         verbose=1,
         steps_per_epoch=steps_per_epoch,
         shuffle=True,
@@ -262,8 +221,9 @@ def main():
         callbacks=[es, mc]
     )
 
-    # Plot the history of the training
-    # plot_history(history)
+    # Save the history of the training in file 'training_hist'
+    with open('training_hist', 'wb') as file_pi:
+        pickle.dump(history.history, file_pi)
 
     # Load the best model
     model = load_model(model_file)
