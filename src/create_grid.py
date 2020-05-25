@@ -9,7 +9,13 @@ import numpy as np
 import random
 import nibabel as nib
 import csv
-import subprocess
+from PIL import Image
+
+
+def normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
+    mean = np.array(mean)
+    std = np.array(std)
+    return (x - mean) / std
 
 
 def create_grid(src_image):
@@ -67,17 +73,17 @@ def create_dictionary(filename):
     return dictionary
 
 
-base = '/Users/david/TFG/ADNI-NN'
+base = 'D:\\TFG\\ADNI-NN'
 images = os.listdir(base)
 
-d = create_dictionary('/Users/david/TFG/ADNIMERGE.csv')
+d = create_dictionary('D:\\TFG\\ADNIMERGE.csv')
 
 random.shuffle(images)
 
 train_size = len(images) * 0.9
 
-train_dir = '/Users/david/TFG/brain_data/train'
-validation_dir = '/Users/david/TFG/brain_data/validation'
+train_dir = 'D:\\TFG\\brain_data\\train'
+validation_dir = 'D:\\TFG\\brain_data\\validation'
 
 count = 0
 
@@ -87,6 +93,8 @@ for image in images:
     slices = create_grid(img)
     matrix = create_data_matrix(slices)
     matrix = matrix / matrix.max()
+    # matrix = np.stack((matrix,) * 3, axis=-1)
+    # matrix = normalize(matrix)
 
     a = image.split('_')
     patient_id = a[1] + '_' + a[2] + '_' + a[3]
@@ -97,38 +105,40 @@ for image in images:
             # Save to train directories
             if dx == 'CN':
                 cn_train_dir = os.path.join(train_dir, 'CN')
-                file = os.path.join(cn_train_dir, img_name + '.npy')
-                subprocess.call(["touch", file])
-                np.save(file, matrix)
+                file = os.path.join(cn_train_dir, img_name + '.tif')
+                img1 = Image.fromarray(matrix)
+                img1.save(file)
 
             if dx == 'Dementia':
                 ad_train_dir = os.path.join(train_dir, 'AD')
-                file = os.path.join(ad_train_dir, img_name + '.npy')
-                subprocess.call(["touch", file])
-                np.save(file, matrix)
+                file = os.path.join(ad_train_dir, img_name + '.tif')
+                img1 = Image.fromarray(matrix)
+                img1.save(file)
 
             if dx == 'MCI':
                 mci_train_dir = os.path.join(train_dir, 'MCI')
-                file = os.path.join(mci_train_dir, img_name + '.npy')
-                subprocess.call(["touch", file])
-                np.save(file, matrix)
+                file = os.path.join(mci_train_dir, img_name + '.tif')
+                img1 = Image.fromarray(matrix)
+                img1.save(file)
         else:
             # Save to validation directories
             if dx == 'CN':
                 cn_val_dir = os.path.join(validation_dir, 'CN')
-                file = os.path.join(cn_val_dir, img_name + '.npy')
-                subprocess.call(["touch", file])
-                np.save(file, matrix)
+                file = os.path.join(cn_val_dir, img_name + '.tif')
+                img1 = Image.fromarray(matrix)
+                img1.save(file)
+
             if dx == 'Dementia':
                 ad_val_dir = os.path.join(validation_dir, 'AD')
-                file = os.path.join(ad_val_dir, img_name + '.npy')
-                subprocess.call(["touch", file])
-                np.save(file, matrix)
+                file = os.path.join(ad_val_dir, img_name + '.tif')
+                img1 = Image.fromarray(matrix)
+                img1.save(file)
+
             if dx == 'MCI':
                 mci_val_dir = os.path.join(validation_dir, 'MCI')
-                file = os.path.join(mci_val_dir, img_name + '.npy')
-                subprocess.call(["touch", file])
-                np.save(file, matrix)
+                file = os.path.join(mci_val_dir, img_name + '.tif')
+                img1 = Image.fromarray(matrix)
+                img1.save(file)
 
         count += 1
 

@@ -9,16 +9,16 @@ import argparse
 from keras import layers
 from keras import Model, Input
 from keras.optimizers import Adam
-from keras.applications.inception_v3 import InceptionV3
+from keras.applications.inception_v3 import InceptionV3, preprocess_input
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.models import load_model
+from keras.utils import to_categorical
 from keras.backend.tensorflow_backend import set_session
 import numpy as np
-from keras.utils import to_categorical
 import tensorflow as tf
-import matplotlib.pyplot as plt
 import pickle
+from PIL import Image
 
 
 def load_data(base_dir):
@@ -51,44 +51,50 @@ def load_data(base_dir):
     print('Loading images...')
     # Train dataset
     for img_AD in train_ad_fnames:
-        _x, _y = np.load(os.path.join(train_ad_dir, img_AD)), 0
-        # _x = np.stack((_x,) * 3, axis=-1)
+        _x, _y = np.array(Image.open(os.path.join(train_ad_dir, img_AD))), 0
+        _x = np.stack((_x,) * 3, axis=-1)
+        _x = preprocess_input(_x)
         x_train.append(_x)
         y_train.append(_y)
 
     print('Loaded %.2f%% of the images...' % load)
     for img_CN in train_cn_fnames:
-        _x, _y = np.load(os.path.join(train_cn_dir, img_CN)), 1
-        # _x = np.stack((_x,) * 3, axis=-1)
+        _x, _y = np.array(Image.open(os.path.join(train_cn_dir, img_CN))), 1
+        _x = np.stack((_x,) * 3, axis=-1)
+        _x = preprocess_input(_x)
         x_train.append(_x)
         y_train.append(_y)
 
     print('Loaded %.2f%% of the images...' % (load * 2))
     for img_MCI in train_mci_fnames:
-        _x, _y = np.load(os.path.join(train_mci_dir, img_MCI)), 2
-        # _x = np.stack((_x,) * 3, axis=-1)
+        _x, _y = np.array(Image.open(os.path.join(train_mci_dir, img_MCI))), 2
+        _x = np.stack((_x,) * 3, axis=-1)
+        _x = preprocess_input(_x)
         x_train.append(_x)
         y_train.append(_y)
 
     print('Loaded %.2f%% of the images...' % (load * 3))
     # Test dataset
     for img_AD in validation_ad_fnames:
-        _x, _y = np.load(os.path.join(validation_ad_dir, img_AD)), 0
-        # _x = np.stack((_x,) * 3, axis=-1)
+        _x, _y = np.array(Image.open(os.path.join(validation_ad_dir, img_AD))), 0
+        _x = np.stack((_x,) * 3, axis=-1)
+        _x = preprocess_input(_x)
         x_test.append(_x)
         y_test.append(_y)
 
     print('Loaded %.2f%% of the images...' % (load * 4))
     for img_CN in validation_cn_fnames:
-        _x, _y = np.load(os.path.join(validation_cn_dir, img_CN)), 1
-        # _x = np.stack((_x,) * 3, axis=-1)
+        _x, _y = np.array(Image.open(os.path.join(validation_cn_dir, img_CN))), 1
+        _x = np.stack((_x,) * 3, axis=-1)
+        _x = preprocess_input(_x)
         x_test.append(_x)
         y_test.append(_y)
 
     print('Loaded %.2f%% of the images...' % (load * 5))
     for img_MCI in validation_mci_fnames:
-        _x, _y = np.load(os.path.join(validation_mci_dir, img_MCI)), 2
-        # _x = np.stack((_x,) * 3, axis=-1)
+        _x, _y = np.array(Image.open(os.path.join(validation_mci_dir, img_MCI))), 2
+        _x = np.stack((_x,) * 3, axis=-1)
+        _x = preprocess_input(_x)
         x_test.append(_x)
         y_test.append(_y)
 
@@ -99,9 +105,10 @@ def load_data(base_dir):
     x_test = np.array(x_test)
     y_train = np.array(y_train, dtype=np.uint8)
     y_test = np.array(y_test, dtype=np.uint8)
+
     # Binarize y data
-    # y_train = to_categorical(y_train)
-    # y_test = to_categorical(y_test)
+    y_train = to_categorical(y_train)
+    y_test = to_categorical(y_test)
 
     split = int(len(y_train) * .9)
     permutation_index = np.random.permutation(len(y_train))
@@ -111,51 +118,33 @@ def load_data(base_dir):
     y_train, y_validation = y_train[train_indices], y_train[validation_indices]
 
     # Reshape data to fit into the network
-    x_train = x_train.reshape(len(y_train), 512, 512, 1)
-    x_validation = x_validation.reshape(len(y_validation), 512, 512, 1)
-    x_test = x_test.reshape(len(y_test), 512, 512, 1)
+    # x_train = x_train.reshape(len(y_train), 512, 512, 1)
+    # x_validation = x_validation.reshape(len(y_validation), 512, 512, 1)
+    # x_test = x_test.reshape(len(y_test), 512, 512, 1)
 
     return x_train, y_train, x_validation, y_validation, x_test, y_test
 
 
 def get_model():
-    input_tensor = Input(shape=(512, 512, 1))
-    x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(input_tensor)
-    x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(x)
-    x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(x)
-    x = layers.MaxPooling2D(pool_size=(1, 1))(x)
-    x = layers.Conv2D(64, (3, 3), activation='relu', padding='same')(x)
-    x = layers.Conv2D(3, (3, 3), activation='relu', padding='same')(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+    inception_model = InceptionV3(weights='imagenet',
+                                  include_top=False,
+                                  input_shape=(512, 512, 3))
 
-    inception_model = InceptionV3(weights='imagenet', include_top=False, input_shape=(128, 128, 3))
-    for layer in inception_model.layers:
-        layer.trainable = False
-
-    x = inception_model(x)
-
-    # Add the top of the network
-    x = layers.AveragePooling2D()(x)
-    # Flatten the output layer to 1 dimension
-    x = layers.Flatten()(x)
-    # Add a dropout layer as means of regularization
+    x = inception_model.output
+    x = layers.GlobalAveragePooling2D()(x)
     x = layers.Dropout(0.6)(x)
-    # Add a fully connected layer with 1,024 hidden units and ReLU activation
     x = layers.Dense(1024, activation='relu')(x)
-    # Add a fully connected layer with 512 hidden units and ReLU activation
-    x = layers.Dense(512, activation='relu')(x)
-    # Add a fully connected layer with 3 hidden units and ReLU activation
-    x = layers.Dense(3, activation='relu')(x)
-    # Add a final sigmoid layer for classification
-    x = layers.Softmax()(x)
+    predictions = layers.Dense(3, activation='softmax')(x)
 
-    # Create and compile the model
-    model = Model(input_tensor, x)
+    model = Model(inputs=inception_model.input, outputs=predictions)
+
+    for layer in inception_model.layers:
+        layer.trainable = True
 
     print(model.summary())
 
     model.compile(optimizer=Adam(lr=0.0001),
-                  loss='sparse_categorical_crossentropy',
+                  loss='categorical_crossentropy',
                   metrics=['acc'])
 
     return model
@@ -186,13 +175,20 @@ def main():
     x_train, y_train, x_validation, y_validation, x_test, y_test = load_data(base_dir)
 
     # Add our data-augmentation parameters to ImageDataGenerator
-    train_datagen = ImageDataGenerator(width_shift_range=0.1,
-                                       height_shift_range=0.1,
-                                       zoom_range=0.08)
+    train_datagen = ImageDataGenerator(
+        rotation_range=8,
+        shear_range=np.pi / 16,
+        width_shift_range=0.10,
+        height_shift_range=0.10,
+        zoom_range=0.08,
+        horizontal_flip=False,
+        vertical_flip=False,
+    )
 
     validation_datagen = ImageDataGenerator()
 
     # Set the batch size and calculate the number of steps per epoch
+    input_size = 512
     batch_size = 8
     steps_per_epoch = len(y_train) // batch_size
     validation_steps = len(y_validation) // batch_size
@@ -200,24 +196,33 @@ def main():
     print('validation_steps: ', validation_steps)
 
     # Flow training images in batches of 8 using train_datagen generator
-    train_generator = train_datagen.flow(x_train, y_train, shuffle=True, batch_size=batch_size)
+    train_generator = train_datagen.flow(
+        x_train,
+        y_train,
+        shuffle=True,
+        batch_size=batch_size
+    )
 
-    validation_generator = validation_datagen.flow(x_validation, y_validation, shuffle=True, batch_size=batch_size)
+    validation_generator = validation_datagen.flow(
+        x_validation,
+        y_validation,
+        shuffle=False,
+        batch_size=batch_size
+    )
 
     # Before training, set EarlyStopping when validation_loss does not decrease
     es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=75)
-
     mc = ModelCheckpoint(filepath=model_file, monitor='val_acc', mode='max', verbose=1, save_best_only=True)
 
     # Train our model
     history = model.fit_generator(
         train_generator,
-        epochs=10,
-        verbose=1,
         steps_per_epoch=steps_per_epoch,
-        shuffle=True,
+        epochs=300,
+        verbose=True,
         validation_data=validation_generator,
         validation_steps=validation_steps,
+        class_weight='auto',
         callbacks=[es, mc]
     )
 
@@ -226,11 +231,11 @@ def main():
         pickle.dump(history.history, file_pi)
 
     # Load the best model
-    model = load_model(model_file)
+    # model = load_model(model_file)
     # Get the score of the model with test dataset
-    _, train_accuracy = model.evaluate(x_train, y_train, verbose=0)
-    _, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
-    print('Train accuracy: %.3f, Test accuracy: %.3f' % (train_accuracy, test_accuracy))
+    # _, train_accuracy = model.evaluate(x_train, y_train, verbose=0)
+    # _, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
+    # print('Train accuracy: %.3f, Test accuracy: %.3f' % (train_accuracy, test_accuracy))
 
 
 if __name__ == '__main__':
