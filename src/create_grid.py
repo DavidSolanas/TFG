@@ -6,8 +6,6 @@
 
 import os
 import numpy as np
-import random
-import nibabel as nib
 import csv
 from PIL import Image
 
@@ -19,10 +17,10 @@ def normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
 
 
 def create_grid(src_image):
-    x, y, z, _ = src_image.shape
+    x, y, z = src_image.shape
     slices = []
     for i in range(32, 64, 2):
-        slices.append(np.rot90(src_image.dataobj[:, :, i]))
+        slices.append(np.rot90(src_image[:, :, i]))
     return slices
 
 
@@ -57,28 +55,20 @@ def create_dictionary(filename):
         next(csv_reader)
         for row in csv_reader:
             key = row[1]
-            dx = row[59]
-            month = 0 if (row[2] == 'bl' or row[2] == '') else int(row[2][1:])
-            if key in dictionary:
-                # check if month is greater and update diagnosis
-                val = dictionary[key]
-                if val[0] < month or (val[1] == '' and dx != ''):
-                    if dx != '' and dx != val[1]:
-                        dictionary[key] = [month, dx]
-                    else:
-                        dictionary[key] = [month, val[1]]
-            else:
-                dictionary[key] = [month, dx]
+            group = row[2]
+            if group == 'LMCI':
+                group = 'MCI'
+            dictionary[key] = group
 
     return dictionary
 
 
-base = 'D:\\TFG\\ADNI-NN'
+base = 'D:\\ADNI-NN'
 images = os.listdir(base)
 
-d = create_dictionary('D:\\TFG\\ADNIMERGE.csv')
-
-random.shuffle(images)
+d = create_dictionary('D:\\Patient_data.csv')
+print(d)
+# random.shuffle(images)
 
 train_size = len(images) * 0.9
 
@@ -89,7 +79,7 @@ count = 0
 
 for image in images:
     path = os.path.join(base, image)
-    img = nib.load(path)
+    img = np.load(path)
     slices = create_grid(img)
     matrix = create_data_matrix(slices)
     matrix = matrix / matrix.max()
@@ -98,9 +88,9 @@ for image in images:
 
     a = image.split('_')
     patient_id = a[1] + '_' + a[2] + '_' + a[3]
-    img_name = image.split(".nii.gz")[0]
+    img_name = image.split(".npy")[0]
     if patient_id in d:
-        _, dx = d[patient_id]
+        dx = d[patient_id]
         if count < train_size:
             # Save to train directories
             if dx == 'CN':
@@ -109,7 +99,7 @@ for image in images:
                 img1 = Image.fromarray(matrix)
                 img1.save(file)
 
-            if dx == 'Dementia':
+            if dx == 'AD':
                 ad_train_dir = os.path.join(train_dir, 'AD')
                 file = os.path.join(ad_train_dir, img_name + '.tif')
                 img1 = Image.fromarray(matrix)
@@ -128,7 +118,7 @@ for image in images:
                 img1 = Image.fromarray(matrix)
                 img1.save(file)
 
-            if dx == 'Dementia':
+            if dx == 'AD':
                 ad_val_dir = os.path.join(validation_dir, 'AD')
                 file = os.path.join(ad_val_dir, img_name + '.tif')
                 img1 = Image.fromarray(matrix)
