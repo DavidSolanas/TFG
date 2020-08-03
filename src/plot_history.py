@@ -6,6 +6,7 @@
 
 import matplotlib.pyplot as plt
 import pickle
+import sys
 
 
 def plot_history(history):
@@ -29,5 +30,6 @@ def plot_history(history):
     plt.show()
 
 
-history = pickle.load(open('training_hist', "rb"))
+path = sys.argv[1]
+history = pickle.load(open(path, "rb"))
 plot_history(history)

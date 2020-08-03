@@ -10,7 +10,7 @@ from keras import layers
 from keras import Model
 from keras.optimizers import Adam, RMSprop
 from keras.applications import InceptionV3
-import keras.applications
+from keras.applications.inception_v3 import preprocess_input
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import EarlyStopping, ModelCheckpoint, LearningRateScheduler
 from keras.utils import to_categorical
@@ -27,7 +27,7 @@ batch_size = 8
 
 
 def get_model():
-    inception_model = keras.applications.InceptionResNetV2(
+    inception_model = keras.applications.InceptionV3(
         input_shape=(input_size, input_size, 3),
         include_top=False,
         weights="imagenet",
@@ -48,31 +48,22 @@ def get_model():
     x = layers.Dense(1024)(x)
     x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
-    x = layers.Dropout(0.1)(x)
     x = layers.Dense(512)(x)
     x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
-    x = layers.Dense(3)(x)
+    x = layers.Dense(1)(x)
     x = layers.BatchNormalization()(x)
-    predictions = layers.Activation('softmax')(x)
+    predictions = layers.Activation('sigmoid')(x)
 
     model = Model(inputs=inception_model.input, outputs=predictions)
 
     print(model.summary())
 
     model.compile(optimizer=Adam(lr=0.0001),
-                  loss='categorical_crossentropy',
+                  loss='binary_crossentropy',
                   metrics=['acc'])
 
     return model
-
-
-def standarize(x):
-    return (x - np.mean(x)) / np.std(x)
-
-
-def normalize(x):
-    return (x - x.min()) / (x.max() - x.min())
 
 
 def main():
@@ -109,8 +100,6 @@ def main():
 
     validation_datagen = ImageDataGenerator()
 
-    # Set the batch size and calculate the number of steps per epoch
-
     train_dir = os.path.join(base_dir, 'train')
     val_dir = os.path.join(base_dir, 'validation')
 
@@ -118,7 +107,7 @@ def main():
         train_dir,
         target_size=(input_size, input_size),
         batch_size=batch_size,
-        class_mode='categorical',
+        class_mode='binary',
         shuffle=True,
         interpolation='bicubic'
     )
@@ -127,16 +116,17 @@ def main():
         val_dir,
         target_size=(input_size, input_size),
         batch_size=batch_size,
-        class_mode='categorical',
+        class_mode='binary',
         shuffle=True,
         interpolation='bicubic'
     )
+
     print(train_generator.next()[0][0].min(), train_generator.next()[0][0].max())
     nb_train_samples = len(train_generator.filenames)
     nb_val_samples = len(validation_generator.filenames)
 
     # Before training, set EarlyStopping when validation_loss does not decrease
-    es = EarlyStopping(monitor='acc', baseline=.875, patience=0)
+    es = EarlyStopping(monitor='val_loss', mode='auto', verbose=1, patience=5)
     mc = ModelCheckpoint(filepath=model_file, monitor='val_acc', mode='max', verbose=1, save_best_only=True)
     # lr = LearningRateScheduler(schedule=decayed_learning_rate)
 

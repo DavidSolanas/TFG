@@ -10,6 +10,7 @@ import nibabel as nib
 import numpy as np
 from nilearn import image
 import matplotlib.pyplot as plt
+from scipy.ndimage import rotate
 
 
 def show_slices(slices):
@@ -35,7 +36,7 @@ def create_grid(src_image):
     x, y, z, _ = src_image.shape
     slices = []
     for i in range(32, 64, 2):
-        slices.append(np.rot90(src_image.dataobj[:, :, i]))
+        slices.append(rotate(src_image.dataobj[:, :, i], -90))
     return slices
 
 
