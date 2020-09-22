@@ -3,7 +3,7 @@
     Author: David Solanas Sanz
     TFG
 """
-
+import argparse
 import csv
 import os
 
@@ -185,10 +185,47 @@ def label_data(dictionary, images):
 
 
 if __name__ == "__main__":
-    base = 'D:\\ADNI-NN'
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-i", "--input_directory", default=None, help="path to the directory where the images are stored")
+    ap.add_argument("-d", "--dictionary", default=None, help="path to the csv file where the patient data is stored")
+    ap.add_argument("-o", "--output_directory", default=None,
+                    help="path to the directory where the preprocessed images will be stored")
+    args = ap.parse_args()
+
+    base = None
+    dest = None
+    dict_path = None
+
+    if args.input_directory is not None:
+        if not os.path.isdir(args.input_directory):
+            print("Directory \'%s\' does not exist" % args.input_directory)
+            exit(1)
+        base = args.input_directory
+    else:
+        print("You must specify the directory where the images are stored (see help).")
+        exit(1)
+
+    if args.output_directory is not None:
+        if not os.path.isdir(args.output_directory):
+            print("Directory \'%s\' does not exist" % args.output_directory)
+            exit(1)
+        dest = args.output_directory
+    else:
+        print("You must specify the directory where the resampled images will be stored (see help).")
+        exit(1)
+
+    if args.dictionary is not None:
+        if not os.path.isfile(args.dictionary):
+            print("File \'%s\' does not exist" % args.dictionary)
+            exit(1)
+        dict_path = args.dictionary
+    else:
+        print("You must specify the csv file where the patient data is stored (see help).")
+        exit(1)
+
     images = os.listdir(base)
 
-    d = create_dictionary('D:\\DXSUM_PDXCONV_ADNIALL.csv')
+    d = create_dictionary(dict_path)
     data = label_data(d, images)
 
     print(len(data))
@@ -203,9 +240,26 @@ if __name__ == "__main__":
 
     print(len(train_images), len(val_images), len(test_images), len(train_images) + len(val_images) + len(test_images))
 
-    train_dir = 'D:\\TFG\\brain_data\\train'
-    validation_dir = 'D:\\TFG\\brain_data\\validation'
-    test_dir = 'D:\\TFG\\brain_data\\test'
+    train_dir = os.path.join(dest, 'train')
+    validation_dir = os.path.join(dest, 'validation')
+    test_dir = os.path.join(dest, 'test')
+
+    # Creates output directories
+    os.makedirs(train_dir, exist_ok=True)
+    os.makedirs(validation_dir, exist_ok=True)
+    os.makedirs(test_dir, exist_ok=True)
+
+    os.makedirs(os.path.join(train_dir, 'AD'), exist_ok=True)
+    os.makedirs(os.path.join(train_dir, 'MCI'), exist_ok=True)
+    os.makedirs(os.path.join(train_dir, 'CN'), exist_ok=True)
+
+    os.makedirs(os.path.join(validation_dir, 'AD'), exist_ok=True)
+    os.makedirs(os.path.join(validation_dir, 'MCI'), exist_ok=True)
+    os.makedirs(os.path.join(validation_dir, 'CN'), exist_ok=True)
+
+    os.makedirs(os.path.join(test_dir, 'AD'), exist_ok=True)
+    os.makedirs(os.path.join(test_dir, 'MCI'), exist_ok=True)
+    os.makedirs(os.path.join(test_dir, 'CN'), exist_ok=True)
 
     for image, dx in train_images:
         path = os.path.join(base, image)

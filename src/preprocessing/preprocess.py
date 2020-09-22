@@ -3,7 +3,7 @@
     Author: David Solanas Sanz
     TFG
 """
-
+import argparse
 import os
 import sys
 
@@ -73,12 +73,34 @@ def get_images(path):
 
 
 if __name__ == "__main__":
-    print(sys.argv)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-i", "--input_directory", default=None, help="path to the directory where the images are stored")
+    ap.add_argument("-o", "--output_directory", default=None,
+                    help="path to the directory where the resampled images will be stored")
+    args = ap.parse_args()
 
-    base = sys.argv[1]
-    dest = sys.argv[2]
+    base = None
+    dest = None
+
+    if args.input_directory is not None:
+        if not os.path.isdir(args.input_directory):
+            print("Directory \'%s\' does not exist" % args.input_directory)
+            exit(1)
+        base = args.input_directory
+    else:
+        print("You must specify the directory where the images are stored (see help).")
+        exit(1)
+
+    if args.output_directory is not None:
+        if not os.path.isdir(args.output_directory):
+            print("Directory \'%s\' does not exist" % args.output_directory)
+            exit(1)
+        dest = args.output_directory
+    else:
+        print("You must specify the directory where the resampled images will be stored (see help).")
+        exit(1)
+
     src_data = get_images(base)
-    print(len(src_data))
 
     for data_path in src_data:
         img = nib.load(data_path)
